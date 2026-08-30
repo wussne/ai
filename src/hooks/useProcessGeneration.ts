@@ -8,6 +8,7 @@ import type {
 } from "../types";
 
 export function useProcessGeneration(
+  organizationSlug: string,
   draft: ProcessDraft,
   attachments: DraftAttachment[],
   processAttachments: ProcessAttachment[],
@@ -23,8 +24,7 @@ export function useProcessGeneration(
 
     setIsGenerating(true);
     try {
-      const result = await generateProcessResult(draft, attachments);
-      if (!result) return;
+      const result = await generateProcessResult(organizationSlug, draft, attachments);
 
       await onGenerated({
         id: Date.now().toString(),

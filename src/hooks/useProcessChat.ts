@@ -6,6 +6,7 @@ import type { BusinessProcess, ChatMessage } from "../types";
 export function useProcessChat(
   process: BusinessProcess | null,
   organizationId: string,
+  organizationSlug: string,
 ) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
@@ -31,6 +32,7 @@ export function useProcessChat(
         process.attachments,
       );
       const response = await sendProcessChatMessage(
+        organizationSlug,
         process,
         messages,
         currentInput,

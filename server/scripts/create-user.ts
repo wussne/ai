@@ -12,9 +12,16 @@ const getArgument = (name: string): string => {
   return value;
 };
 
+const getOptionalArgument = (name: string): string | undefined => {
+  const index = process.argv.indexOf(`--${name}`);
+  return index >= 0 ? process.argv[index + 1]?.trim() || undefined : undefined;
+};
+
 const createUser = async (): Promise<void> => {
   const fullName = getArgument('name');
   const email = getArgument('email').toLowerCase();
+  const organizationSlug = getOptionalArgument('organization')?.toLowerCase() || 'main';
+  const isOwner = process.argv.includes('--owner');
   const password = process.env.AUTH_USER_PASSWORD;
 
   if (!/^\S+@\S+\.\S+$/.test(email) || email.length > 254) {
@@ -26,16 +33,49 @@ const createUser = async (): Promise<void> => {
   }
 
   const passwordHash = await hashPassword(password);
-  const result = await postgresPool.query<{id: string}>(
-    `
-      INSERT INTO users (full_name, email, password_hash)
-      VALUES ($1, $2, $3)
-      RETURNING id
-    `,
-    [fullName, email, passwordHash],
-  );
+  const connection = await postgresPool.connect();
 
-  console.info(`User created: id=${result.rows[0]?.id}, email=${email}`);
+  try {
+    await connection.query('BEGIN');
+    const organizationResult = await connection.query<{id: string}>(
+      'SELECT id FROM organizations WHERE lower(slug) = $1 AND is_active = true',
+      [organizationSlug],
+    );
+    const organizationId = organizationResult.rows[0]?.id;
+    if (!organizationId) {
+      throw new Error(`Active organization not found: ${organizationSlug}`);
+    }
+
+    const userResult = await connection.query<{id: string}>(
+      `
+        INSERT INTO users (full_name, email, password_hash)
+        VALUES ($1, $2, $3)
+        RETURNING id
+      `,
+      [fullName, email, passwordHash],
+    );
+    const userId = userResult.rows[0]?.id;
+    if (!userId) {
+      throw new Error('User insert returned no id');
+    }
+
+    await connection.query(
+      `
+        INSERT INTO organization_memberships (organization_id, user_id, is_owner)
+        VALUES ($1, $2, $3)
+      `,
+      [organizationId, userId, isOwner],
+    );
+    await connection.query('COMMIT');
+    console.info(
+      `User created: id=${userId}, email=${email}, organization=${organizationSlug}, owner=${isOwner}`,
+    );
+  } catch (error) {
+    await connection.query('ROLLBACK');
+    throw error;
+  } finally {
+    connection.release();
+  }
 };
 
 void createUser()

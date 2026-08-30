@@ -6,3 +6,8 @@ coverage/
 *.log
 .env*
 !.env.example
+!.env.docker.example
+
+# Separate upload-ready frontend artifact.
+frontend-dist/
+server-dist/

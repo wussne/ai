@@ -65,7 +65,7 @@ export function AttachmentPicker({
       </div>
 
       <span className="text-[10px] font-medium text-slate-400">
-        PNG, JPG, WEBP, PDF, TXT · до 5 файлов по 10 МБ
+        PNG, JPG, WEBP, PDF, TXT, MD, CSV · до 5 файлов по 3 МБ
       </span>
     </div>
   );

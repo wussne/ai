@@ -10,8 +10,8 @@ export const SESSION_COOKIE_NAME = 'business.sid';
 
 export const sessionCookieOptions = {
   httpOnly: true,
-  secure: environment.isProduction,
-  sameSite: 'lax' as const,
+  secure: environment.session.cookieSecure,
+  sameSite: environment.session.cookieSameSite,
   path: '/',
 };
 
@@ -28,7 +28,7 @@ export const sessionMiddleware = expressSession({
     ...sessionCookieOptions,
     maxAge: environment.session.maxAgeMs,
   },
-  proxy: environment.isProduction,
+  proxy: environment.server.trustProxy !== false,
   resave: false,
   saveUninitialized: false,
   unset: 'destroy',

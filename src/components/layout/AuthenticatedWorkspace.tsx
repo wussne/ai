@@ -14,7 +14,6 @@ import {useProcessGeneration} from '../../hooks/useProcessGeneration';
 import {useProcessLibrary} from '../../hooks/useProcessLibrary';
 import {useVoiceInput} from '../../hooks/useVoiceInput';
 import {deleteAttachments as deleteStoredAttachments} from '../../services/attachmentStorage';
-import {exportElementToPdf} from '../../services/pdfService';
 import {Section, type BusinessProcess} from '../../types';
 import {CreatePage} from '../pages/CreatePage';
 import {HelpPage} from '../pages/HelpPage';
@@ -67,7 +66,11 @@ export function AuthenticatedWorkspace({
     organization.organizationId,
     processes.flatMap((process) => process.attachments ?? []),
   );
-  const chat = useProcessChat(viewingProcess, organization.organizationId);
+  const chat = useProcessChat(
+    viewingProcess,
+    organization.organizationId,
+    organization.slug,
+  );
   const resolvedDraft = useMemo(() => {
     const department = processOptions.departments.find((item) => item.id === draft.departmentId);
     const position = processOptions.positions.find((item) => item.id === draft.positionId);
@@ -81,6 +84,7 @@ export function AuthenticatedWorkspace({
   }, [draft, processOptions.departments, processOptions.positions]);
 
   const {isGenerating, generate} = useProcessGeneration(
+    organization.slug,
     resolvedDraft,
     processAttachments.attachments,
     processAttachments.processAttachments,
@@ -141,6 +145,7 @@ export function AuthenticatedWorkspace({
 
   const exportToPdf = async () => {
     if (!resultRef.current) return;
+    const {exportElementToPdf} = await import('../../services/pdfService');
     await exportElementToPdf(resultRef.current, viewingProcess?.name || 'процесса');
   };
 

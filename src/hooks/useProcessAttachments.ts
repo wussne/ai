@@ -151,7 +151,7 @@ export function useProcessAttachments(
       (file) => file.size > MAX_ATTACHMENT_SIZE_BYTES,
     );
     if (oversizedFile) {
-      setError(`Файл «${oversizedFile.name}» превышает лимит 10 МБ.`);
+      setError(`Файл «${oversizedFile.name}» превышает лимит 3 МБ.`);
       return;
     }
 

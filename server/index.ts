@@ -17,13 +17,17 @@ import {managementRouter} from './management/management.routes.js';
 import {HttpError} from './http/http-error.js';
 import {auditRouter} from './audit/audit.routes.js';
 import {processRouter} from './processes/process.routes.js';
+import {corsMiddleware} from './http/cors.middleware.js';
+import {aiRouter} from './ai/ai.routes.js';
+import multer from 'multer';
 
 const app = express();
 
 app.disable('x-powered-by');
-if (environment.isProduction) {
-  app.set('trust proxy', 1);
+if (environment.server.trustProxy !== false) {
+  app.set('trust proxy', environment.server.trustProxy);
 }
+app.use(corsMiddleware);
 app.use(express.json({limit: '1mb'}));
 app.use('/api/health', healthRouter);
 app.use(sessionMiddleware);
@@ -32,12 +36,21 @@ app.use('/api', requireAuthentication);
 app.use('/api/organizations', organizationRouter);
 app.use('/api', requireOrganizationContext);
 app.use('/api', loadOrganizationAccess);
+app.use('/api/ai', aiRouter);
 app.use('/api/access', accessRouter);
 app.use('/api/audit-logs', auditRouter);
 app.use('/api/processes', processRouter);
 app.use('/api/management', managementRouter);
 
 const errorHandler: ErrorRequestHandler = (error, _request, response, _next) => {
+  if (error instanceof multer.MulterError) {
+    response.status(400).json({
+      message: error.code === 'LIMIT_FILE_SIZE'
+        ? 'Размер одного файла не должен превышать 3 МБ'
+        : 'Можно прикрепить не более 5 файлов',
+    });
+    return;
+  }
   if (error instanceof HttpError) {
     response.status(error.status).json({message: error.message});
     return;
@@ -57,8 +70,10 @@ const startServer = async (): Promise<void> => {
     `PostgreSQL connected: database=${database.database}, user=${database.user}`,
   );
 
-  const server = app.listen(environment.server.port, () => {
-    console.info(`API server is listening on http://localhost:${environment.server.port}`);
+  const server = app.listen(environment.server.port, environment.server.host, () => {
+    console.info(
+      `API server is listening on http://${environment.server.host}:${environment.server.port}`,
+    );
   });
 
   let isShuttingDown = false;

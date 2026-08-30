@@ -10,8 +10,8 @@ healthRouter.get('/', (_request, response) => {
 
 healthRouter.get('/database', async (_request, response) => {
   try {
-    const database = await checkDatabaseConnection();
-    response.json({status: 'ok', database});
+    await checkDatabaseConnection();
+    response.json({status: 'ok'});
   } catch (error) {
     console.error('PostgreSQL health check failed:', error);
     response.status(503).json({
